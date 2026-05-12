@@ -1121,28 +1121,26 @@ export default function APIPageClient({ machineId }) {
         ) : (
           <div className="flex flex-col">
             {/* Search */}
-            {keys.length > KEYS_PER_PAGE && (
-              <div className="mb-3">
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-[18px]">search</span>
-                  <input
-                    type="text"
-                    placeholder="Search keys..."
-                    value={keySearchTerm}
-                    onChange={(e) => { setKeySearchTerm(e.target.value); setKeyCurrentPage(1); }}
-                    className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-border bg-surface-1 text-text-main placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                  />
-                  {keySearchTerm && (
-                    <button
-                      onClick={() => { setKeySearchTerm(""); setKeyCurrentPage(1); }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-text-muted hover:text-text-main"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">close</span>
-                    </button>
-                  )}
-                </div>
+            <div className="mb-3">
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-[18px]">search</span>
+                <input
+                  type="text"
+                  placeholder="Search keys..."
+                  value={keySearchTerm}
+                  onChange={(e) => { setKeySearchTerm(e.target.value); setKeyCurrentPage(1); }}
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-border bg-surface-1 text-text-main placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                />
+                {keySearchTerm && (
+                  <button
+                    onClick={() => { setKeySearchTerm(""); setKeyCurrentPage(1); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-text-muted hover:text-text-main"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">close</span>
+                  </button>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Keys list */}
             {(() => {
