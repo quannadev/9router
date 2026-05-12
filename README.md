@@ -94,6 +94,26 @@ Claude Code/Codex/OpenClaw/Cursor/Cline Settings:
 
 **That's it!** Start coding with FREE AI models.
 
+### Claude Code CLI Auto-Setup (for GapoWork)
+
+If you are using the official Claude Code CLI (`@anthropic-ai/claude-code`), you can configure it to use this 9Router instance with a single command.
+
+This script will automatically update your `~/.claude/settings.json` file.
+
+**Linux/macOS:**
+
+```bash
+curl -fsSL https://coding.gapowork.vn/setup.sh | bash
+```
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://coding.gapowork.vn/setup.ps1 | iex
+```
+
+It will prompt for an API key, which you can create in the 9Router dashboard.
+
 **Alternative: run from source (this repository):**
 
 This repository package is private (`9router-app`), so source/Docker execution is the expected local development path.
