@@ -56,6 +56,13 @@ async function isAuthenticated(request) {
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
 
+  // Strip duplicate /v1/v1 → /v1
+  if (pathname.startsWith('/v1/v1/')) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.replace(/^\/v1\/v1\//, '/v1/');
+    return NextResponse.rewrite(url);
+  }
+
   // Always protected - require valid JWT or local CLI token (machineId-based)
   if (ALWAYS_PROTECTED.some((p) => pathname.startsWith(p))) {
     if (await hasValidCliToken(request) || await hasValidToken(request))
