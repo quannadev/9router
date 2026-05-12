@@ -590,6 +590,7 @@ async function startServer(apiKey, sudoPassword, forceKillPort443 = false) {
           ROUTER_API_KEY: apiKey,
           NODE_ENV: "production",
           MITM_ROUTER_BASE: mitmRouterBase,
+          DATA_DIR: DATA_DIR,
         },
       }
     );

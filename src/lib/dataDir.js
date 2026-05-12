@@ -12,6 +12,20 @@ function defaultDir() {
 }
 
 export function getDataDir() {
+  // When in Docker, always use the container-internal data path.
+  // This prevents host DATA_DIR env from leaking in and causing permission errors.
+  if (fs.existsSync("/.dockerenv")) {
+    const dockerDir = "/app/data";
+    try {
+      fs.mkdirSync(dockerDir, { recursive: true });
+      return dockerDir;
+    } catch (e) {
+      console.error(`[DATA_DIR] Failed to create Docker data directory at ${dockerDir}:`, e);
+      // Fallback to default in case of weird permissions, though it's unlikely to work.
+      return defaultDir();
+    }
+  }
+
   const configured = process.env.DATA_DIR;
   if (!configured) return defaultDir();
   try {

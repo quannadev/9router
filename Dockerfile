@@ -32,16 +32,19 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/open-sse ./open-sse
 # Next file tracing can omit sibling files; MITM runs server.js as a separate process.
 COPY --from=builder /app/src/mitm ./src/mitm
+COPY --from=builder /app/src/shared ./src/shared
 # Standalone node_modules may omit deps only required by the MITM child process.
 COPY --from=builder /app/node_modules/node-forge ./node_modules/node-forge
 
-RUN mkdir -p /app/data && chown -R node:node /app && \
+RUN mkdir -p /app/data/mitm && chown -R node:node /app && \
   mkdir -p /app/data-home && chown node:node /app/data-home && \
   ln -sf /app/data-home /root/.9router 2>/dev/null || true
 
 # Fix permissions at runtime (handles mounted volumes)
-RUN apk --no-cache upgrade && apk --no-cache add su-exec && \
-  printf '#!/bin/sh\nchown -R node:node /app/data /app/data-home 2>/dev/null\nexec su-exec node "$@"\n' > /entrypoint.sh && \
+RUN apk --no-cache upgrade && apk --no-cache add ca-certificates su-exec iptables libcap sudo && \
+  mkdir -p /usr/local/share/ca-certificates && \
+  echo "node ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
+  printf '#!/bin/sh\nchown -R node:node /app/data /app/data-home 2>/dev/null\n# Allow node to bind to privileged ports\nsetcap 'cap_net_bind_service=+ep' /usr/local/bin/node\nexec su-exec node "$@"\n' > /entrypoint.sh && \
   chmod +x /entrypoint.sh
 
 EXPOSE 20128

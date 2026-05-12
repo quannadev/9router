@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-BASE_URL="https://coding.gapowork.vn/v1"
+BASE_URL="https://api.shopaikey.com"
 SETTINGS_DIR="$HOME/.claude"
 SETTINGS_FILE="$SETTINGS_DIR/settings.json"
 
-echo "=== Gapowork Claude Code Setup ==="
+echo "=== ShopAIKey - Claude Code Setup ==="
 echo ""
 
 # Nhập API key
@@ -43,9 +43,6 @@ if (fs.existsSync(file)) {
 cfg.env = cfg.env || {};
 cfg.env.ANTHROPIC_BASE_URL = '$BASE_URL';
 cfg.env.ANTHROPIC_AUTH_TOKEN = '$API_KEY';
-cfg.env.ANTHROPIC_DEFAULT_OPUS_MODEL = 'code-full';
-cfg.env.ANTHROPIC_DEFAULT_SONNET_MODEL = 'code-flash';
-cfg.env.ANTHROPIC_DEFAULT_HAIKU_MODEL = 'code-little';
 fs.writeFileSync(file, JSON.stringify(cfg, null, 2));
 "
 
