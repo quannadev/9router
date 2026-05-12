@@ -5,7 +5,7 @@ import {
   isAnthropicCompatibleProvider,
   isOpenAICompatibleProvider,
 } from "@/shared/constants/providers";
-import { getProviderConnections, getCombos, getCustomModels, getModelAliases } from "@/lib/localDb";
+import { getProviderConnections, getCombos, getCustomModels, getModelAliases, getSettings } from "@/lib/localDb";
 import { getDisabledModels } from "@/lib/disabledModelsDb";
 
 const parseOpenAIStyleModels = (data) => {
@@ -386,9 +386,19 @@ export async function OPTIONS() {
  * GET /v1/models - OpenAI compatible models list (LLM/chat models only by default).
  * For other capabilities use /v1/models/{kind} (image, tts, stt, embedding, image-to-text, web).
  */
-export async function GET() {
+export async function GET(request) {
   try {
-    const data = await buildModelsList([LLM_KIND]);
+    const { searchParams } = new URL(request.url);
+    const ownedBy = searchParams.get("owned_by");
+    const search = searchParams.get("search")?.toLowerCase();
+
+    const [data0, settings] = await Promise.all([buildModelsList([LLM_KIND]), getSettings()]);
+    const hidden = settings.hiddenModelOwners || [];
+
+    let data = hidden.length ? data0.filter(m => !hidden.includes(m.owned_by)) : data0;
+    if (ownedBy) data = data.filter(m => m.owned_by === ownedBy);
+    if (search) data = data.filter(m => m.id.toLowerCase().includes(search));
+
     return Response.json({ object: "list", data }, {
       headers: { "Access-Control-Allow-Origin": "*" },
     });

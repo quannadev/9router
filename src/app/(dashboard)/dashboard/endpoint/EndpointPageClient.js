@@ -52,6 +52,8 @@ export default function APIPageClient({ machineId }) {
   const [rtkEnabled, setRtkEnabledState] = useState(true);
   const [cavemanEnabled, setCavemanEnabled] = useState(false);
   const [cavemanLevel, setCavemanLevel] = useState("full");
+  const [hiddenModelOwners, setHiddenModelOwners] = useState([]);
+  const [hiddenOwnerInput, setHiddenOwnerInput] = useState("");
 
   // Cloudflare Tunnel state
   const [tunnelChecking, setTunnelChecking] = useState(true);
@@ -199,6 +201,7 @@ export default function APIPageClient({ machineId }) {
         setRtkEnabledState(data.rtkEnabled !== false);
         setCavemanEnabled(!!data.cavemanEnabled);
         setCavemanLevel(data.cavemanLevel || "full");
+        setHiddenModelOwners(data.hiddenModelOwners || []);
       }
       if (statusRes.ok) {
         const data = await statusRes.json();
@@ -282,6 +285,21 @@ export default function APIPageClient({ machineId }) {
   const handleCavemanLevel = (level) => {
     setCavemanLevel(level);
     patchSetting({ cavemanLevel: level });
+  };
+
+  const addHiddenOwner = () => {
+    const owner = hiddenOwnerInput.trim();
+    if (!owner || hiddenModelOwners.includes(owner)) return;
+    const next = [...hiddenModelOwners, owner];
+    setHiddenModelOwners(next);
+    setHiddenOwnerInput("");
+    patchSetting({ hiddenModelOwners: next });
+  };
+
+  const removeHiddenOwner = (owner) => {
+    const next = hiddenModelOwners.filter(o => o !== owner);
+    setHiddenModelOwners(next);
+    patchSetting({ hiddenModelOwners: next });
   };
 
   const fetchData = async () => {
@@ -1026,6 +1044,39 @@ export default function APIPageClient({ machineId }) {
             />
           </div>
         </div>
+      </Card>
+
+      {/* Hidden Model Owners */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="font-medium">Hidden Model Owners</p>
+            <p className="text-sm text-text-muted">
+              Models from these owners will not appear in <code>/v1/models</code>
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2 mb-3">
+          <input
+            type="text"
+            value={hiddenOwnerInput}
+            onChange={e => setHiddenOwnerInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && addHiddenOwner()}
+            placeholder="e.g. anthropic, openai"
+            className="flex-1 px-3 py-1.5 text-sm rounded border border-border bg-surface-2 text-text focus:outline-none focus:border-primary"
+          />
+          <Button icon="add" onClick={addHiddenOwner}>Add</Button>
+        </div>
+        {hiddenModelOwners.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {hiddenModelOwners.map(owner => (
+              <span key={owner} className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-surface-2 border border-border">
+                {owner}
+                <button onClick={() => removeHiddenOwner(owner)} className="text-text-muted hover:text-text ml-1">✕</button>
+              </span>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* API Keys */}
