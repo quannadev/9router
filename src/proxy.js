@@ -10,6 +10,5 @@ export const config = {
     "/api/keys/:path*",
     "/api/providers/client",
     "/api/provider-nodes/validate",
-    "/v1/:path*",
   ],
 };
