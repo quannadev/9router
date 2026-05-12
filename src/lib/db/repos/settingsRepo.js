@@ -36,6 +36,7 @@ const DEFAULT_SETTINGS = {
   rtkEnabled: true,
   cavemanEnabled: false,
   cavemanLevel: "full",
+  hiddenModelOwners: [],
 };
 
 async function readRaw() {
