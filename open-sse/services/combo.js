@@ -4,6 +4,7 @@
 
 import { checkFallbackError, formatRetryAfter } from "./accountFallback.js";
 import { unavailableResponse } from "../utils/error.js";
+import { filterModelsByContext } from "./modelMetadata.js";
 
 /**
  * Track rotation state per combo (for round-robin strategy)
@@ -31,11 +32,19 @@ function rotateModelsFromIndex(models, currentIndex) {
  * @param {string} comboName - Name of the combo
  * @param {string} strategy - "fallback" or "round-robin"
  * @param {number|string} [stickyLimit=1] - Requests per combo model before switching
+ * @param {number} [contextSize=0] - Estimated context size in tokens for context-aware routing
  * @returns {string[]} Rotated models array
  */
-export function getRotatedModels(models, comboName, strategy, stickyLimit = 1) {
-  if (!models || models.length <= 1 || strategy !== "round-robin") {
+export function getRotatedModels(models, comboName, strategy, stickyLimit = 1, contextSize = 0) {
+  if (!models || models.length <= 1) {
     return models;
+  }
+
+  // Filter models by context window if context size is provided
+  const contextFilteredModels = contextSize > 0 ? filterModelsByContext(models, contextSize) : models;
+
+  if (strategy !== "round-robin") {
+    return contextFilteredModels;
   }
 
   const rotationKey = comboName || "__default__";
@@ -45,13 +54,13 @@ export function getRotatedModels(models, comboName, strategy, stickyLimit = 1) {
     ? { index: existingState, consecutiveUseCount: 0 }
     : (existingState || { index: 0, consecutiveUseCount: 0 });
 
-  const currentIndex = state.index % models.length;
-  const rotatedModels = rotateModelsFromIndex(models, currentIndex);
+  const currentIndex = state.index % contextFilteredModels.length;
+  const rotatedModels = rotateModelsFromIndex(contextFilteredModels, currentIndex);
   const nextUseCount = state.consecutiveUseCount + 1;
 
   if (nextUseCount >= normalizedStickyLimit) {
     comboRotationState.set(rotationKey, {
-      index: (currentIndex + 1) % models.length,
+      index: (currentIndex + 1) % contextFilteredModels.length,
       consecutiveUseCount: 0,
     });
   } else {
@@ -103,11 +112,12 @@ export function getComboModelsFromData(modelStr, combosData) {
  * @param {string} [options.comboName] - Name of the combo (for round-robin tracking)
  * @param {string} [options.comboStrategy] - Strategy: "fallback" or "round-robin"
  * @param {number|string} [options.comboStickyLimit=1] - Requests per combo model before switching
+ * @param {number} [options.contextSize=0] - Estimated context size for context-aware routing
  * @returns {Promise<Response>}
  */
-export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1 }) {
-  // Apply rotation strategy if enabled
-  const rotatedModels = getRotatedModels(models, comboName, comboStrategy, comboStickyLimit);
+export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, contextSize = 0 }) {
+  // Apply rotation strategy if enabled (with context-aware filtering)
+  const rotatedModels = getRotatedModels(models, comboName, comboStrategy, comboStickyLimit, contextSize);
   
   let lastError = null;
   let earliestRetryAfter = null;

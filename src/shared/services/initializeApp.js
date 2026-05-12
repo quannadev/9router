@@ -3,6 +3,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { existsSync } from "fs";
 import { cleanupProviderConnections, getSettings, updateSettings, getApiKeys } from "@/lib/localDb";
+import { initModelMetadata } from "open-sse/services/modelMetadata.js";
 import {
   enableTunnel, enableTailscale,
   isTunnelManuallyDisabled, isTunnelReconnecting, isTailscaleReconnecting,
@@ -51,6 +52,16 @@ export async function initializeApp() {
   try {
     await cleanupProviderConnections();
     const settings = await getSettings();
+
+    // Initialize model metadata cache
+    try {
+      const keys = await getApiKeys();
+      const openaiKey = keys.find(k => k.provider === "openai" && k.isActive !== false)?.key;
+      const googleKey = keys.find(k => k.provider === "google" && k.isActive !== false)?.key;
+      await initModelMetadata({ openaiKey, googleKey });
+    } catch (err) {
+      console.log("[InitApp] Model metadata init failed:", err.message);
+    }
 
     // Auto-resume tunnel (once per process)
     if (settings.tunnelEnabled && !g.tunnelAutoResumed) {

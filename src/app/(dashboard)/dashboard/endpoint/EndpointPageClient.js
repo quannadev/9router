@@ -44,6 +44,9 @@ export default function APIPageClient({ machineId }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [createdKey, setCreatedKey] = useState(null);
+  const [keySearchTerm, setKeySearchTerm] = useState("");
+  const [keyCurrentPage, setKeyCurrentPage] = useState(1);
+  const KEYS_PER_PAGE = 10;
 
   const [requireApiKey, setRequireApiKey] = useState(false);
   const [requireLogin, setRequireLogin] = useState(true);
@@ -1117,66 +1120,164 @@ export default function APIPageClient({ machineId }) {
           </div>
         ) : (
           <div className="flex flex-col">
-            {keys.map((key) => (
-              <div
-                key={key.id}
-                className={`group flex items-center justify-between py-3 border-b border-black/[0.03] dark:border-white/[0.03] last:border-b-0 ${key.isActive === false ? "opacity-60" : ""}`}
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{key.name}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <code className="text-xs text-text-muted font-mono">
-                      {visibleKeys.has(key.id) ? key.key : maskKey(key.key)}
-                    </code>
+            {/* Search */}
+            {keys.length > KEYS_PER_PAGE && (
+              <div className="mb-3">
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-[18px]">search</span>
+                  <input
+                    type="text"
+                    placeholder="Search keys..."
+                    value={keySearchTerm}
+                    onChange={(e) => { setKeySearchTerm(e.target.value); setKeyCurrentPage(1); }}
+                    className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-border bg-surface-1 text-text-main placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  />
+                  {keySearchTerm && (
                     <button
-                      onClick={() => toggleKeyVisibility(key.id)}
-                      className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary opacity-0 group-hover:opacity-100 transition-all"
-                      title={visibleKeys.has(key.id) ? "Hide key" : "Show key"}
+                      onClick={() => { setKeySearchTerm(""); setKeyCurrentPage(1); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-text-muted hover:text-text-main"
                     >
-                      <span className="material-symbols-outlined text-[14px]">
-                        {visibleKeys.has(key.id) ? "visibility_off" : "visibility"}
-                      </span>
+                      <span className="material-symbols-outlined text-[16px]">close</span>
                     </button>
-                    <button
-                      onClick={() => copy(key.key, key.id)}
-                      className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary opacity-0 group-hover:opacity-100 transition-all"
-                    >
-                      <span className="material-symbols-outlined text-[14px]">
-                        {copied === key.id ? "check" : "content_copy"}
-                      </span>
-                    </button>
-                  </div>
-                  <p className="text-xs text-text-muted mt-1">
-                    Created {new Date(key.createdAt).toLocaleDateString()}
-                  </p>
-                  {key.isActive === false && (
-                    <p className="text-xs text-orange-500 mt-1">Paused</p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Toggle
-                    size="sm"
-                    checked={key.isActive ?? true}
-                    onChange={(checked) => {
-                      if (key.isActive && !checked) {
-                        if (confirm(`Pause API key "${key.name}"?\n\nThis key will stop working immediately but can be resumed later.`)) {
-                          handleToggleKey(key.id, checked);
-                        }
-                      } else {
-                        handleToggleKey(key.id, checked);
-                      }
-                    }}
-                    title={key.isActive ? "Pause key" : "Resume key"}
-                  />
-                  <button
-                    onClick={() => handleDeleteKey(key.id)}
-                    className="p-2 hover:bg-red-500/10 rounded text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">delete</span>
-                  </button>
-                </div>
               </div>
-            ))}
+            )}
+
+            {/* Keys list */}
+            {(() => {
+              const filtered = keySearchTerm
+                ? keys.filter(k => k.name.toLowerCase().includes(keySearchTerm.toLowerCase()) || k.key.toLowerCase().includes(keySearchTerm.toLowerCase()))
+                : keys;
+              const totalPages = Math.max(1, Math.ceil(filtered.length / KEYS_PER_PAGE));
+              const safePage = Math.min(keyCurrentPage, totalPages);
+              const paged = filtered.slice((safePage - 1) * KEYS_PER_PAGE, safePage * KEYS_PER_PAGE);
+
+              if (filtered.length === 0) {
+                return (
+                  <div className="text-center py-8 text-text-muted text-sm">
+                    No keys match &quot;{keySearchTerm}&quot;
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  {paged.map((key) => (
+                    <div
+                      key={key.id}
+                      className={`group flex items-center justify-between py-3 border-b border-black/[0.03] dark:border-white/[0.03] last:border-b-0 ${key.isActive === false ? "opacity-60" : ""}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{key.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <code className="text-xs text-text-muted font-mono">
+                            {visibleKeys.has(key.id) ? key.key : maskKey(key.key)}
+                          </code>
+                          <button
+                            onClick={() => toggleKeyVisibility(key.id)}
+                            className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary opacity-0 group-hover:opacity-100 transition-all"
+                            title={visibleKeys.has(key.id) ? "Hide key" : "Show key"}
+                          >
+                            <span className="material-symbols-outlined text-[14px]">
+                              {visibleKeys.has(key.id) ? "visibility_off" : "visibility"}
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => copy(key.key, key.id)}
+                            className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">
+                              {copied === key.id ? "check" : "content_copy"}
+                            </span>
+                          </button>
+                        </div>
+                        <p className="text-xs text-text-muted mt-1">
+                          Created {new Date(key.createdAt).toLocaleDateString()}
+                        </p>
+                        {key.isActive === false && (
+                          <p className="text-xs text-orange-500 mt-1">Paused</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Toggle
+                          size="sm"
+                          checked={key.isActive ?? true}
+                          onChange={(checked) => {
+                            if (key.isActive && !checked) {
+                              if (confirm(`Pause API key "${key.name}"?\n\nThis key will stop working immediately but can be resumed later.`)) {
+                                handleToggleKey(key.id, checked);
+                              }
+                            } else {
+                              handleToggleKey(key.id, checked);
+                            }
+                          }}
+                          title={key.isActive ? "Pause key" : "Resume key"}
+                        />
+                        <button
+                          onClick={() => handleDeleteKey(key.id)}
+                          className="p-2 hover:bg-red-500/10 rounded text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between pt-3 mt-1 border-t border-border">
+                      <p className="text-xs text-text-muted">
+                        {filtered.length} key{filtered.length !== 1 ? "s" : ""}
+                        {keySearchTerm && ` matching "${keySearchTerm}"`}
+                        {" "}· Page {safePage}/{totalPages}
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setKeyCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={safePage <= 1}
+                          className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                        </button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                          .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+                          .reduce((acc, p, i, arr) => {
+                            if (i > 0 && p - arr[i - 1] > 1) acc.push("...");
+                            acc.push(p);
+                            return acc;
+                          }, [])
+                          .map((p, i) =>
+                            p === "..." ? (
+                              <span key={`ellipsis-${i}`} className="px-1 text-xs text-text-muted">...</span>
+                            ) : (
+                              <button
+                                key={p}
+                                onClick={() => setKeyCurrentPage(p)}
+                                className={`min-w-[28px] h-7 rounded text-xs font-medium transition-colors ${
+                                  p === safePage
+                                    ? "bg-primary text-white"
+                                    : "hover:bg-black/5 dark:hover:bg-white/5 text-text-muted"
+                                }`}
+                              >
+                                {p}
+                              </button>
+                            )
+                          )
+                        }
+                        <button
+                          onClick={() => setKeyCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={safePage >= totalPages}
+                          className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         )}
       </Card>
