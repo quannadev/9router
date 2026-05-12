@@ -295,6 +295,12 @@ export function extractApiKey(request) {
     return xApiKey;
   }
 
+  // Check Claude Code x-anthropic-api-key header
+  const xAnthropicApiKey = request.headers.get("x-anthropic-api-key");
+  if (xAnthropicApiKey) {
+    return xAnthropicApiKey;
+  }
+
   return null;
 }
 
