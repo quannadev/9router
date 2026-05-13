@@ -62,21 +62,22 @@ if [ -f "$SETTINGS_FILE" ]; then
 fi
 
 # Merge/ghi settings.json
-node -e "
-const fs = require('fs');
-const file = '$SETTINGS_FILE';
+# SECURITY: Pass values via env vars to avoid shell string interpolation in node -e
+API_KEY="$API_KEY" BASE_URL="$BASE_URL" SETTINGS_FILE="$SETTINGS_FILE" node -e '
+const fs = require("fs");
+const file = process.env.SETTINGS_FILE;
 let cfg = {};
 if (fs.existsSync(file)) {
-  try { cfg = JSON.parse(fs.readFileSync(file, 'utf8')); } catch(e) {}
+  try { cfg = JSON.parse(fs.readFileSync(file, "utf8")); } catch(e) {}
 }
 cfg.env = cfg.env || {};
-cfg.env.ANTHROPIC_BASE_URL = '$BASE_URL';
-cfg.env.ANTHROPIC_AUTH_TOKEN = '$API_KEY';
-cfg.env.ANTHROPIC_DEFAULT_OPUS_MODEL = 'code-full';
-cfg.env.ANTHROPIC_DEFAULT_SONNET_MODEL = 'code-flash';
-cfg.env.ANTHROPIC_DEFAULT_HAIKU_MODEL = 'code-little';
+cfg.env.ANTHROPIC_BASE_URL = process.env.BASE_URL;
+cfg.env.ANTHROPIC_AUTH_TOKEN = process.env.API_KEY;
+cfg.env.ANTHROPIC_DEFAULT_OPUS_MODEL = "code-full";
+cfg.env.ANTHROPIC_DEFAULT_SONNET_MODEL = "code-flash";
+cfg.env.ANTHROPIC_DEFAULT_HAIKU_MODEL = "code-little";
 fs.writeFileSync(file, JSON.stringify(cfg, null, 2));
-"
+'
 
 echo ""
 echo "Hoàn tất! Cấu hình đã được lưu vào $SETTINGS_FILE"

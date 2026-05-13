@@ -1,3 +1,5 @@
 # Review Rules
 
-- Ignore `public/setup.sh` during code reviews, as it's a utility script for initial setup and not part of the core application logic.
+# SECURITY: public/setup.sh must be reviewed carefully despite being a utility script.
+# - Watch for command injection vulnerabilities in shell string interpolation
+# - All external values passed to node -e must use environment variables, never string interpolation
