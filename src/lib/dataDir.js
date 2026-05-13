@@ -1,3 +1,7 @@
+// NOTE: This logic is duplicated in src/mitm/paths.js
+// This is intentional. This file uses ES Modules (import/export),
+// while paths.js uses CommonJS (require/module.exports) for the
+// standalone MITM server. They cannot share this code directly.
 import fs from "node:fs";
 import path from "path";
 import os from "os";

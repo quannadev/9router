@@ -1,3 +1,7 @@
+// NOTE: This logic is duplicated in src/lib/dataDir.js
+// This is intentional. This file uses CommonJS (require/module.exports)
+// for the standalone MITM server, while dataDir.js uses ES Modules
+// (import/export). They cannot share this code directly.
 const fs = require("fs");
 const path = require("path");
 const os = require("os");

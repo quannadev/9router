@@ -50,6 +50,7 @@ export function cacheClaudeHeaders(headers) {
   const captured = {};
   for (const key of CLAUDE_IDENTITY_HEADERS) {
     if (headers[key] !== undefined && headers[key] !== null) {
+      captured[key] = headers[key];
       if (key === "anthropic-beta" && typeof captured[key] === "string") {
         const flags = captured[key].split(",").map(f => f.trim());
         const filteredFlags = flags.filter(f => !f.startsWith("context_management"));

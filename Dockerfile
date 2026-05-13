@@ -41,9 +41,8 @@ RUN mkdir -p /app/data/mitm && chown -R node:node /app && \
   ln -sf /app/data-home /root/.9router 2>/dev/null || true
 
 # Fix permissions at runtime (handles mounted volumes)
-RUN apk --no-cache upgrade && apk --no-cache add ca-certificates su-exec iptables libcap sudo && \
+RUN apk --no-cache upgrade && apk --no-cache add ca-certificates su-exec iptables libcap && \
   mkdir -p /usr/local/share/ca-certificates && \
-  echo "node ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
   printf '#!/bin/sh\nchown -R node:node /app/data /app/data-home 2>/dev/null\n# Allow node to bind to privileged ports\nsetcap 'cap_net_bind_service=+ep' /usr/local/bin/node\nexec su-exec node "$@"\n' > /entrypoint.sh && \
   chmod +x /entrypoint.sh
 
