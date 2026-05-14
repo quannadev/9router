@@ -73,4 +73,5 @@ There are no dedicated test scripts in `package.json`, so manual testing of the 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
+at /Users/quannguyen/workspace/gapowork/9router/specs/001-skip-model-on-disabled-provider/plan.md
 <!-- SPECKIT END -->
