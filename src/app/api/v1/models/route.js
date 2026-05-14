@@ -124,8 +124,10 @@ function comboMatchesKinds(combo, kindFilter) {
  */
 export async function buildModelsList(kindFilter) {
   let connections = [];
+  let dbAvailable = false;
   try {
     connections = await getProviderConnections();
+    dbAvailable = true;
     connections = connections.filter(c => c.isActive !== false);
   } catch (e) {
     console.log("Could not fetch providers, returning all models");
@@ -183,7 +185,9 @@ export async function buildModelsList(kindFilter) {
     models.push(entry);
   }
 
-  if (connections.length === 0) {
+  // Only fall back to static models if DB is unavailable (e.g., not initialized).
+  // If DB is available but all connections are disabled, return only combos (no provider models).
+  if (!dbAvailable) {
     // DB unavailable -> return static models, filtered by per-model kind
     const aliasToProviderId = Object.fromEntries(
       Object.entries(PROVIDER_ID_TO_ALIAS).map(([id, alias]) => [alias, id])

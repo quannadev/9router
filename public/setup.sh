@@ -1,77 +1,84 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# Gapowork - Claude Code Setup Script
+#
+# ==============================================================================
+#
+# PURPOSE:
+#   This script provides a one-step setup for configuring the Claude Code CLI
+#   to work with the Gapowork proxy service hosted at coding.gapowork.vn.
+#   The goal is to automate the configuration process, making it fast and
+#   easy for developers to start using the service.
+#
+# WHAT IT DOES:
+#   1. Prompts the user interactively for their API key.
+#   2. Checks if the 'claude' CLI is installed and installs it via npm if not.
+#   3. Backs up any existing ~/.claude/settings.json file.
+#   4. Automatically creates or updates ~/.claude/settings.json to:
+#      - Set ANTHROPIC_BASE_URL to point to the Gapowork proxy.
+#      - Set ANTHROPIC_AUTH_TOKEN with the provided API key.
+#      - Configure default models (opus, sonnet, haiku) for the service.
+#
+# USAGE:
+#   This script is intended to be run directly from the service URL via curl:
+#   curl -fsSL https://coding.gapowork.vn/setup.sh | bash
+#
+# SECURITY NOTICE: This script handles sensitive data (API key) and modifies
+# user configuration files in your home directory (~/.claude/settings.json).
+# Please review the script to understand the changes it will make.
+#
+# ==============================================================================
 set -e
 
-# Prompt for API key
-read -p "Nhập API key của bạn: " API_KEY
+BASE_URL="https://coding.gapowork.vn/v1"
+SETTINGS_DIR="$HOME/.claude"
+SETTINGS_FILE="$SETTINGS_DIR/settings.json"
+
+echo "=== Gapowork Claude Code Setup ==="
+echo ""
+
+# Nhập API key
+read -rp "Nhập API key của bạn: " API_KEY < /dev/tty
 if [ -z "$API_KEY" ]; then
-    echo "API key không được để trống. Vui lòng chạy lại script và nhập key."
-    exit 1
+  echo "Lỗi: API key không được để trống."
+  exit 1
 fi
 
-# Check if claude is installed, if not, install it
-if ! command -v claude &> /dev/null; then
-    echo "'claude' không được tìm thấy. Đang cài đặt..."
-    if command -v npm &> /dev/null; then
-        npm install -g @anthropic-ai/claude-code
-    else
-        echo "Lỗi: Cần có 'npm' để cài đặt claude. Vui lòng cài đặt Node.js và npm."
-        exit 1
-    fi
+# Kiểm tra và cài Claude CLI
+if ! command -v claude &>/dev/null; then
+  echo "Claude CLI chưa được cài. Đang cài đặt..."
+  npm install -g @anthropic-ai/claude-code
+else
+  echo "Claude CLI đã được cài: $(claude --version 2>/dev/null || echo 'ok')"
 fi
 
-# Create settings directory if it doesn't exist
-CLAUDE_DIR="$HOME/.claude"
-mkdir -p "$CLAUDE_DIR"
+# Tạo thư mục nếu chưa có
+mkdir -p "$SETTINGS_DIR"
 
-# Path to the settings file
-SETTINGS_FILE="$CLAUDE_DIR/settings.json"
-
-# Backup existing settings file
+# Backup nếu đã có settings
 if [ -f "$SETTINGS_FILE" ]; then
-    cp "$SETTINGS_FILE" "$SETTINGS_FILE.bak.$(date +%s)"
-    echo "Đã sao lưu cài đặt hiện tại tới $SETTINGS_FILE.bak"
+  cp "$SETTINGS_FILE" "${SETTINGS_FILE}.bak"
+  echo "Đã backup: ${SETTINGS_FILE}.bak"
 fi
 
-# Use Node.js to safely update the JSON settings
-node <<EOF
-const fs = require('fs');
-const path = require('path');
-
-const settingsPath = path.join(process.env.HOME, '.claude', 'settings.json');
-let settings = {};
-
-try {
-  if (fs.existsSync(settingsPath)) {
-    const content = fs.readFileSync(settingsPath, 'utf8');
-    if (content.trim()) {
-        settings = JSON.parse(content);
-    }
-  }
-} catch (error) {
-  console.log('Không thể đọc file cài đặt hiện tại, sẽ tạo một file mới.');
-  settings = {};
+# Merge/ghi settings.json
+# SECURITY: Pass values via env vars to avoid shell string interpolation in node -e
+API_KEY="$API_KEY" BASE_URL="$BASE_URL" SETTINGS_FILE="$SETTINGS_FILE" node -e '
+const fs = require("fs");
+const file = process.env.SETTINGS_FILE;
+let cfg = {};
+if (fs.existsSync(file)) {
+  try { cfg = JSON.parse(fs.readFileSync(file, "utf8")); } catch(e) {}
 }
+cfg.env = cfg.env || {};
+cfg.env.ANTHROPIC_BASE_URL = process.env.BASE_URL;
+cfg.env.ANTHROPIC_AUTH_TOKEN = process.env.API_KEY;
+cfg.env.ANTHROPIC_DEFAULT_OPUS_MODEL = "code-full";
+cfg.env.ANTHROPIC_DEFAULT_SONNET_MODEL = "code-flash";
+cfg.env.ANTHROPIC_DEFAULT_HAIKU_MODEL = "code-little";
+fs.writeFileSync(file, JSON.stringify(cfg, null, 2));
+'
 
-// Ensure env block exists
-if (!settings.env) {
-    settings.env = {};
-}
-
-// Update settings
-settings.env.ANTHROPIC_BASE_URL = "https://coding.gapowork.vn/v1";
-settings.env.ANTHROPIC_AUTH_TOKEN = "$API_KEY";
-settings.env.ANTHROPIC_DEFAULT_OPUS_MODEL = "code-full";
-settings.env.ANTHROPIC_DEFAULT_SONNET_MODEL = "code-flash";
-settings.env.ANTHROPIC_DEFAULT_HAIKU_MODEL = "code-flash";
-
-
-try {
-  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
-  console.log('Đã cập nhật cài đặt thành công.');
-} catch (error) {
-  console.error('Lỗi khi ghi file cài đặt:', error);
-  process.exit(1);
-}
-EOF
-
-echo "Hoàn tất! Chạy 'claude' để bắt đầu sử dụng."
+echo ""
+echo "Hoàn tất! Cấu hình đã được lưu vào $SETTINGS_FILE"
+echo "Chạy 'claude' để bắt đầu sử dụng."

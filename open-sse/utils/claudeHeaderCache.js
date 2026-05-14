@@ -26,6 +26,8 @@ const CLAUDE_IDENTITY_HEADERS = [
   "arch",
 ];
 
+const DEPRECATED_ANTHROPIC_BETA_FLAGS = ["context_management"];
+
 let cachedHeaders = null;
 
 /**
@@ -51,6 +53,14 @@ export function cacheClaudeHeaders(headers) {
   for (const key of CLAUDE_IDENTITY_HEADERS) {
     if (headers[key] !== undefined && headers[key] !== null) {
       captured[key] = headers[key];
+      if (key === "anthropic-beta" && typeof captured[key] === "string") {
+        const flags = captured[key].split(",").map(f => f.trim());
+        const filteredFlags = flags.filter(f => !DEPRECATED_ANTHROPIC_BETA_FLAGS.some(prefix => f.startsWith(prefix)));
+        if (filteredFlags.length < flags.length) {
+          captured[key] = filteredFlags.join(",");
+          console.log(`[ClaudeHeaders] Filtered deprecated anthropic-beta flags: ${DEPRECATED_ANTHROPIC_BETA_FLAGS.join(", ")}`);
+        }
+      }
     }
   }
 

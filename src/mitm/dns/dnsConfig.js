@@ -33,9 +33,9 @@ function atomicWriteHostsWin(target, originalContent, newContent) {
 
 const IS_WIN = process.platform === "win32";
 const IS_MAC = process.platform === "darwin";
-const HOSTS_FILE = IS_WIN
+const HOSTS_FILE = process.env.HOSTS_FILE_PATH || (IS_WIN
   ? path.join(process.env.SystemRoot || "C:\\Windows", "System32", "drivers", "etc", "hosts")
-  : "/etc/hosts";
+  : "/etc/hosts");
 
 /** True when `sudo` exists (e.g. missing on minimal Docker images like Alpine). */
 function isSudoAvailable() {
